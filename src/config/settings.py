@@ -8,6 +8,7 @@ load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_API_KEY_II = os.getenv("GROQ_API_KEY_II")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 
 class Settings(BaseSettings):

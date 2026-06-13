@@ -3,17 +3,17 @@ import uuid
 from rich.console import Console
 from rich.live import Live
 
-from src.graphs.chess_match_graph import build_chess_graph
+from src.graphs.chess_match_graph import build_graph
 from src.state.game_state import ChessGameState
 from src.ui.cli_display import display_board, display_game_result
-from src.config.settings import settings
+from src.config.settings import Settings
 
 console = Console()
 
 async def run_match(white_model: str, black_model: str):
     """Run a complete chess match between two AI models."""
 
-    graph = build_chess_graph()
+    graph = build_graph()
 
     config = {
         "configurable": {
