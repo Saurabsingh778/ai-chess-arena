@@ -3,7 +3,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from .base import BaseChessModel
 from ..config.settings import Settings
 
-class GeminiChessModel(BaseChessModel):
+class GroqChessModelII(BaseChessModel):
     def __init__(self, model_id: str, temperature: float = 0.7):
         super().__init__(model_id, temperature)
 

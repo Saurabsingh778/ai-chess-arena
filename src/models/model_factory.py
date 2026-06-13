@@ -3,6 +3,7 @@ from .base import BaseChessModel
 from .groq_client import GroqChessModel
 from .gemini_client import GeminiChessModel
 from .cerebras_client import CerebraseChessModel
+from .groq_client_II import GroqChessModelII
 
 # Registry of available models
 MODEL_REGISTRY: Dict[str, type[BaseChessModel]] = {

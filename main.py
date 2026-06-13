@@ -65,5 +65,5 @@ if __name__ == "__main__":
     # Example: Groq vs Gemini
     asyncio.run(run_match(
         white_model="groq/llama-3.3-70b-versatile",
-        black_model="groq/openai/gpt-oss-120b"
+        black_model="gemini/gemma-4-31b-it"
     ))
