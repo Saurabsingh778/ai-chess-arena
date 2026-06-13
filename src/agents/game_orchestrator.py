@@ -40,7 +40,7 @@ def check_game_over(state: ChessGameState) -> str:
             return f"checkmate_{winner}"
         return "draw"
     
-    return "continue"
+    return "continue_black" if state['current_turn'] == "white" else "continue_white"
 
 def detect_turn(state: ChessGameState) -> str:
     """Route to the correct player's subgraph."""
