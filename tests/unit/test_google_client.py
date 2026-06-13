@@ -1,16 +1,16 @@
 import asyncio
 
 from src.models.groq_client import TestGroqChessModel
-import os
+from src.models.gemini_client import TestGeminiChessModel
 from dotenv import load_dotenv
+import os
 
 load_dotenv()
 
-API_KEY = os.getenv("GROQ_API_KEY")
+API_KEY = os.getenv("GEMINI_API_KEY")
 
 
 async def main():
-
     api_key = API_KEY
     model_id = "openai/gpt-oss-120b"
     temperature = 0.7

@@ -5,7 +5,7 @@ from typing import Literal
 class Settings(BaseSettings):
     groq_api_key: str | None = None
     cerebrase_api_key: str | None = None
-    google_api_key:str | None = None
+    gemini_api_key:str | None = None
 
     white_model: str = "groq/llama-3.3-70b-versatile"
     black_model: str = "gemini/gemini-2.5-flash"
