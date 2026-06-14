@@ -1,58 +1,67 @@
-import { useMemo, useRef, useEffect } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
-/**
- * PGN-style move list — numbered move pairs (white/black).
- */
+function normalizeMoves(moveHistory) {
+  return moveHistory.map((move, index) => {
+    if (typeof move === 'string') {
+      const ply = index + 1;
+      return {
+        ply,
+        number: Math.ceil(ply / 2),
+        color: ply % 2 === 1 ? 'white' : 'black',
+        san: move,
+      };
+    }
+    return move;
+  });
+}
+
 export default function MoveHistory({ moveHistory, lastMoveSan }) {
   const listRef = useRef(null);
 
-  // Pair moves into numbered rows
   const movePairs = useMemo(() => {
     const pairs = [];
-    for (let i = 0; i < moveHistory.length; i += 2) {
-      pairs.push({
-        number: Math.floor(i / 2) + 1,
-        white: moveHistory[i] || '',
-        black: moveHistory[i + 1] || '',
-      });
+    for (const move of normalizeMoves(moveHistory)) {
+      if (!pairs[move.number - 1]) {
+        pairs[move.number - 1] = { number: move.number, white: null, black: null };
+      }
+      pairs[move.number - 1][move.color] = move;
     }
-    return pairs;
+    return pairs.filter(Boolean);
   }, [moveHistory]);
 
-  // Auto-scroll to latest move
   useEffect(() => {
-    if (listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
-    }
+    if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
   }, [moveHistory]);
 
   return (
-    <div className="move-history glass-card">
-      <h3>📋 Moves ({moveHistory.length})</h3>
+    <section className="history-card">
+      <div className="section-heading">
+        <span>Move History</span>
+        <strong>{moveHistory.length}</strong>
+      </div>
 
       <div className="move-list" ref={listRef}>
-        {movePairs.length === 0 && (
-          <div style={{
-            textAlign: 'center',
-            color: 'var(--text-dim)',
-            fontSize: '0.8rem',
-            padding: '16px 0',
-          }}>
-            No moves yet
-          </div>
-        )}
+        {movePairs.length === 0 && <div className="empty-state">No moves yet</div>}
 
-        {movePairs.map((pair, idx) => (
-          <div
-            key={pair.number}
-            className={`move-row ${idx === movePairs.length - 1 ? 'latest' : ''}`}
-          >
+        {movePairs.map((pair) => (
+          <div className="move-row" key={pair.number}>
             <span className="move-number">{pair.number}.</span>
-            <span className="move-white">{pair.white}</span>
-            <span className="move-black">{pair.black}</span>
+            <MoveCell move={pair.white} isLatest={pair.white?.san === lastMoveSan} />
+            <MoveCell move={pair.black} isLatest={pair.black?.san === lastMoveSan} />
           </div>
         ))}
       </div>
-    </div>
+    </section>
+  );
+}
+
+function MoveCell({ move, isLatest }) {
+  if (!move) return <span className="move-cell empty">...</span>;
+
+  return (
+    <span className={`move-cell ${move.color} ${isLatest ? 'latest' : ''}`}>
+      <span className="move-color-icon">{move.color === 'white' ? '♙' : '♟'}</span>
+      <strong>{move.san}</strong>
+    </span>
   );
 }

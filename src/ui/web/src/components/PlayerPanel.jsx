@@ -1,55 +1,64 @@
 import { useMemo } from 'react';
-import { getCapturedPieces, getPieceSymbol } from '../utils/chessPieces';
+import { formatModelName, getCapturedPieces, getPieceSymbol } from '../utils/chessPieces';
 
-/**
- * Player info panel — shows model name, turn indicator, captured pieces.
- */
-export default function PlayerPanel({ color, model, isActive, fen, isRunning }) {
+function formatDuration(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+export default function PlayerPanel({
+  color,
+  model,
+  isActive,
+  isRunning,
+  fen,
+  moveCount,
+  elapsedSeconds,
+}) {
+  const modelInfo = useMemo(() => formatModelName(model), [model]);
   const captured = useMemo(() => getCapturedPieces(fen), [fen]);
-  const myCaptured = color === 'white' ? captured.white : captured.black;
-
-  const pieceIcon = color === 'white' ? '♔' : '♚';
-  const isThinking = isActive && isRunning;
+  const capturedPieces = color === 'white' ? captured.white : captured.black;
+  const label = color.toUpperCase();
 
   return (
-    <div className={`player-panel glass-card ${color}-player ${isActive ? 'active-turn' : ''}`}>
-      <div className="player-header">
-        <div className={`player-icon ${color}`}>
-          {pieceIcon}
+    <section className={`player-card ${color} ${isActive && isRunning ? 'active' : ''}`}>
+      <div className="player-card-header">
+        <span className={`color-token ${color}`} />
+        <div className="player-title">
+          <span>{label}</span>
+          <strong>{modelInfo.provider}</strong>
         </div>
-        <div className="player-info">
-          <div className={`player-color ${color}`}>{color}</div>
-          <div className="player-model" title={model}>
-            {model || 'Not selected'}
-          </div>
-        </div>
-        {isActive && isRunning && (
-          <div className="badge badge-ongoing">
-            Active
-          </div>
-        )}
+        {isActive && isRunning && <span className="thinking-badge">Thinking...</span>}
       </div>
 
-      {/* Thinking indicator */}
-      {isThinking && (
-        <div className="player-thinking">
-          <span>Thinking</span>
-          <div className="thinking-dots">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-        </div>
-      )}
+      <div className="model-name" title={modelInfo.label}>
+        {modelInfo.name}
+      </div>
 
-      {/* Captured pieces */}
-      {myCaptured.length > 0 && (
-        <div className="captured-pieces">
-          {myCaptured.map((p, i) => (
-            <span key={i}>{getPieceSymbol(p)}</span>
-          ))}
+      <div className="player-metrics">
+        <div>
+          <span>Clock</span>
+          <strong>{formatDuration(elapsedSeconds)}</strong>
         </div>
-      )}
-    </div>
+        <div>
+          <span>Moves</span>
+          <strong>{moveCount}</strong>
+        </div>
+      </div>
+
+      <div className="captured-row">
+        <span>Captured</span>
+        <div className="captured-pieces" aria-label={`${label} captured pieces`}>
+          {capturedPieces.length > 0 ? (
+            capturedPieces.map((piece, index) => (
+              <span key={`${piece}-${index}`}>{getPieceSymbol(piece)}</span>
+            ))
+          ) : (
+            <em>None</em>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }

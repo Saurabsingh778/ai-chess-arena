@@ -7,6 +7,7 @@ import asyncio
 import uuid
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, Any, Optional
 from contextlib import asynccontextmanager
 
@@ -26,7 +27,7 @@ matches: Dict[str, Dict[str, Any]] = {}
 
 # ── Pydantic request/response models ────────────────────────────────
 class MatchRequest(BaseModel):
-    white_model: str = "groq/llama-3.3-70b-versatile"
+    white_model: str = "groq/openai/gpt-oss-120b"
     black_model: str = "gemini/gemma-4-31b-it"
     max_moves: int = 200
     temperature: float = 0.7
@@ -84,6 +85,10 @@ async def run_match_engine(match_id: str, white_model: str, black_model: str):
         "winner": None,
         "last_move": None,
         "last_move_san": None,
+        "proposed_move": None,
+        "raw_model_output": None,
+        "model_prompt": None,
+        "active_model": None,
         "move_errors": [],
         "messages": [],
         "commentary": [],
@@ -103,12 +108,52 @@ async def run_match_engine(match_id: str, white_model: str, black_model: str):
     try:
         async for event in graph.astream(initial_state, config, stream_mode="updates"):
             for node_name, node_state in event.items():
+                changed_keys = sorted(node_state.keys())
+                current_snapshot = matches[match_id]["state"]
+
                 # Always send node-level event
                 await queue.put({
                     "type": "node_update",
                     "node": node_name,
+                    "changed_keys": changed_keys,
                     "timestamp": time.time(),
                 })
+
+                await queue.put({
+                    "type": "graph_state",
+                    "node": node_name,
+                    "changed_keys": changed_keys,
+                    "current_turn": node_state.get("current_turn", current_snapshot.get("current_turn")),
+                    "turn_count": node_state.get("turn_count", current_snapshot.get("turn_count", 0)),
+                    "game_status": node_state.get("game_status", current_snapshot.get("game_status")),
+                    "last_move": node_state.get("last_move"),
+                    "last_move_san": node_state.get("last_move_san"),
+                    "timestamp": time.time(),
+                })
+
+                if node_name in ("white_player", "black_player"):
+                    color = "white" if node_name == "white_player" else "black"
+                    if node_state.get("proposed_move"):
+                        await queue.put({
+                            "type": "move_proposed",
+                            "color": color,
+                            "model": node_state.get("active_model"),
+                            "proposed_move": node_state.get("proposed_move"),
+                            "selected_move": node_state.get("last_move"),
+                            "move_san": node_state.get("last_move_san"),
+                            "timestamp": time.time(),
+                        })
+
+                    if node_state.get("raw_model_output"):
+                        await queue.put({
+                            "type": "raw_output",
+                            "color": color,
+                            "model": node_state.get("active_model"),
+                            "raw_output": node_state.get("raw_model_output"),
+                            "prompt": node_state.get("model_prompt"),
+                            "proposed_move": node_state.get("proposed_move"),
+                            "timestamp": time.time(),
+                        })
 
                 # Board update
                 if "fen" in node_state and node_state["fen"]:
@@ -120,16 +165,34 @@ async def run_match_engine(match_id: str, white_model: str, black_model: str):
                         "current_turn": node_state.get("current_turn"),
                         "turn_count": node_state.get("turn_count", 0),
                         "move_history": node_state.get("move_history", []),
+                        "game_status": node_state.get("game_status"),
                         "timestamp": time.time(),
                     }
                     await queue.put(board_event)
+
+                    if node_state.get("last_move_san"):
+                        played_color = "white" if node_state.get("turn_count", 0) % 2 == 1 else "black"
+                        await queue.put({
+                            "type": "move_applied",
+                            "color": played_color,
+                            "move_san": node_state.get("last_move_san"),
+                            "move_uci": node_state.get("last_move"),
+                            "fen": node_state["fen"],
+                            "turn_count": node_state.get("turn_count", 0),
+                            "timestamp": time.time(),
+                        })
 
                     # Update stored state
                     matches[match_id]["state"].update({
                         "fen": node_state["fen"],
                         "current_turn": node_state.get("current_turn", "white"),
                         "turn_count": node_state.get("turn_count", 0),
+                        "last_move": node_state.get("last_move"),
                         "last_move_san": node_state.get("last_move_san"),
+                        "proposed_move": node_state.get("proposed_move"),
+                        "raw_model_output": node_state.get("raw_model_output"),
+                        "model_prompt": node_state.get("model_prompt"),
+                        "active_model": node_state.get("active_model"),
                     })
 
                 # Move errors
@@ -139,6 +202,7 @@ async def run_match_engine(match_id: str, white_model: str, black_model: str):
                             "type": "error_event",
                             "error": err,
                             "node": node_name,
+                            "category": "illegal_move" if "invalid move" in err.lower() or "illegal move" in err.lower() else "error",
                             "timestamp": time.time(),
                         })
 
@@ -224,7 +288,12 @@ async def start_match(req: MatchRequest):
             "turn_count": 0,
             "winner": None,
             "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            "last_move": None,
             "last_move_san": None,
+            "proposed_move": None,
+            "raw_model_output": None,
+            "model_prompt": None,
+            "active_model": None,
         },
         "clients": set(),
     }
@@ -314,6 +383,11 @@ async def websocket_match(websocket: WebSocket, match_id: str):
     finally:
         if client_queue in match.get("client_queues", []):
             match["client_queues"].remove(client_queue)
+
+
+web_dist = Path(__file__).resolve().parent / "src" / "ui" / "web" / "dist"
+if web_dist.exists():
+    app.mount("/", StaticFiles(directory=web_dist, html=True), name="web")
 
 
 if __name__ == "__main__":

@@ -31,13 +31,36 @@ async def player_move_node(state: ChessGameState, color: str) -> Dict[str, Any]:
         return {
             "move_errors" : [f"{color} timeout - forfeit"],
             "game_status": "resignation",
-            "winner": "black" if color == "white" else "white"
+            "winner": "black" if color == "white" else "white",
+            "active_model": model_string,
         }
     except Exception as e:
+        fallback = legal_moves[0] if legal_moves else None
+        if fallback:
+            success, san = board.make_move(fallback)
+            if success:
+                return {
+                    "move_errors": [f"{color} exception, used fallback {fallback}: {str(e)}"],
+                    "fen": board.get_fen(),
+                    "last_move": fallback,
+                    "last_move_san": san,
+                    "current_turn": "black" if color == "white" else "white",
+                    "turn_count": state["turn_count"] + 1,
+                    "active_model": model_string,
+                    **model_metadata,
+                }
         return {
-            "move_errors": [f"{color} error: {str(e)}"],
-            "move_uci": legal_moves[0] # Fallback to first legal move
+            "move_errors": [f"{color} fatal error: {str(e)}"],
+            "game_status": "error",
+            "winner": "black" if color == "white" else "white",
         }
+
+    model_metadata = {
+        "proposed_move": getattr(model, "last_proposed_move", None) or move_uci,
+        "raw_model_output": getattr(model, "last_raw_output", None),
+        "model_prompt": getattr(model, "last_prompt", None),
+        "active_model": model_string,
+    }
     
     success, san = board.make_move(move_uci)
 
@@ -47,12 +70,14 @@ async def player_move_node(state: ChessGameState, color: str) -> Dict[str, Any]:
             "move_errors": [f"{color} invalid move: {move_uci}"],
             "move_uci": legal_moves[0],
             "last_move": legal_moves[0],
+            **model_metadata,
         }
     
     return {
         "fen": board.get_fen(),
         "last_move": move_uci,
         "last_move_san": san,
+        **model_metadata,
         "move_history": [move_uci],
         "current_turn": "black" if color == "white" else "white",
         "turn_count": state["turn_count"] + 1,
@@ -65,4 +90,4 @@ async def white_player_node(state: ChessGameState) -> Dict[str, Any]:
     return await player_move_node(state, "white")
 
 async def black_player_node(state: ChessGameState) -> Dict[str, Any]:
-    return await player_move_node(state, "black")
+    return await player_move_node(state, "black")

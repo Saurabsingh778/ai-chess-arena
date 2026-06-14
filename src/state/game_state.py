@@ -21,6 +21,10 @@ class ChessGameState(TypedDict):
 
     last_move: str | None
     last_move_san: str | None
+    proposed_move: str | None
+    raw_model_output: str | None
+    model_prompt: str | None
+    active_model: str | None
     move_errors: Annotated[list[str], add]
 
     messages: Annotated[list[BaseMessage], add]

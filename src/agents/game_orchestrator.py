@@ -17,6 +17,10 @@ def initialize_game(state: ChessGameState) -> Dict[str, Any]:
         "winner" : None,
         "last_move" : None,
         "last_move_san" : None,
+        "proposed_move" : None,
+        "raw_model_output" : None,
+        "model_prompt" : None,
+        "active_model" : None,
         "move_errors" : [],
         "messages" : [],
         "commentary" : [],
@@ -28,19 +32,26 @@ def initialize_game(state: ChessGameState) -> Dict[str, Any]:
 
 def check_game_over(state: ChessGameState) -> str:
     """Conditional edge: check if game should end."""
+
+    # Bug 3 fix: handle non-board terminations (resignation, timeout)
+    # validate_move preserves these; route them straight to finalize
+    if state.get("game_status") not in (None, "ongoing"):
+        return "draw"  # both "draw" and "checkmate_*" map to finalize anyway
+
     board = ChessBoard(state["fen"])
 
     if state["turn_count"] >= 200:
         return "max_moves"
-    
+
     if board.is_game_over():
         result = board.get_game_results()
         if result == "checkmate":
             winner = "black" if state["current_turn"] == "white" else "white"
             return f"checkmate_{winner}"
         return "draw"
-    
-    return "continue_black" if state['current_turn'] == "white" else "continue_white"
+
+    # Bug 1 fix: inverted condition was here
+    return "continue_black" if state["current_turn"] == "black" else "continue_white"
 
 def detect_turn(state: ChessGameState) -> str:
     """Route to the correct player's subgraph."""
@@ -51,17 +62,22 @@ def finalize_game(state: ChessGameState) -> Dict[str, Any]:
     from datetime import datetime
 
     board = ChessBoard(state["fen"])
-    result = board.get_game_results()
+    board_result = board.get_game_results()
+    end_time = datetime.now().isoformat()
 
-    winner = None
-    if result == "checkmate":
-        winner = "black" if state["current_turn"] == "white" else "white"
-    elif result in ["stalemate", "insufficient_material", "repetition"]:
-        winner = "draw"
-    
-    return {
-        "game_status" : result or "completed",
-        "winner" : winner,
-        "end_time" : datetime.now().isoformat(),
-    }
+    if board_result:
+        # Board-level termination: checkmate, stalemate, etc.
+        winner = None
+        if board_result == "checkmate":
+            winner = "black" if state["current_turn"] == "white" else "white"
+        else:
+            winner = "draw"
+        return {"game_status": board_result, "winner": winner, "end_time": end_time}
 
+    # Bug 4 fix: non-board terminations
+    if state["turn_count"] >= 200:
+        return {"game_status": "max_moves", "winner": "draw", "end_time": end_time}
+
+    # Resignation/timeout: winner is already set in state by player_move_node
+    # Just add end_time; don't clobber game_status or winner
+    return {"end_time": end_time}

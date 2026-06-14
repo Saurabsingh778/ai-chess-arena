@@ -8,6 +8,10 @@ class BaseChessModel(ABC):
     def __init__(self, model_id : str, temperature: float = 0.7):
         self.model_id = model_id
         self.temperature = temperature
+        self.last_prompt: str | None = None
+        self.last_raw_output: str | None = None
+        self.last_proposed_move: str | None = None
+        self.last_selected_move: str | None = None
     
     @abstractmethod
     async def get_move(self, fen: str, legal_moves: list[str],

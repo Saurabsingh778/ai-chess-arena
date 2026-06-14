@@ -1,113 +1,165 @@
-/**
- * Chess piece Unicode mappings and FEN→piece conversion utilities.
- */
+export const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+export const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
 
-// Unicode chess pieces
 export const PIECES = {
-  // White pieces
-  K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙',
-  // Black pieces
-  k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟',
+  K: '♔',
+  Q: '♕',
+  R: '♖',
+  B: '♗',
+  N: '♘',
+  P: '♙',
+  k: '♚',
+  q: '♛',
+  r: '♜',
+  b: '♝',
+  n: '♞',
+  p: '♟',
 };
 
-/**
- * Parse a FEN string into an 8x8 board array.
- * Returns array of 8 rows (rank 8 to rank 1), each row is array of 8 chars.
- * Empty squares are null.
- */
+const STARTING_COUNTS = {
+  P: 8,
+  N: 2,
+  B: 2,
+  R: 2,
+  Q: 1,
+  K: 1,
+  p: 8,
+  n: 2,
+  b: 2,
+  r: 2,
+  q: 1,
+  k: 1,
+};
+
+const PIECE_ORDER = ['q', 'r', 'b', 'n', 'p', 'Q', 'R', 'B', 'N', 'P'];
+
 export function parseFEN(fen) {
-  if (!fen) return Array(8).fill(null).map(() => Array(8).fill(null));
+  const emptyBoard = Array.from({ length: 8 }, () => Array(8).fill(null));
+  if (!fen) return emptyBoard;
 
   const placement = fen.split(' ')[0];
   const rows = placement.split('/');
+  if (rows.length !== 8) return emptyBoard;
 
-  return rows.map(row => {
+  return rows.map((row) => {
     const squares = [];
-    for (const ch of row) {
-      if (/\d/.test(ch)) {
-        for (let i = 0; i < parseInt(ch); i++) squares.push(null);
+    for (const char of row) {
+      if (/\d/.test(char)) {
+        for (let i = 0; i < Number(char); i += 1) squares.push(null);
       } else {
-        squares.push(ch);
+        squares.push(char);
       }
     }
-    return squares;
+    return squares.slice(0, 8);
   });
 }
 
-/**
- * Get the Unicode symbol for a FEN piece character.
- */
 export function getPieceSymbol(piece) {
   return PIECES[piece] || '';
 }
 
-/**
- * Determine if a piece char is white (uppercase).
- */
 export function isWhitePiece(piece) {
-  return piece && piece === piece.toUpperCase();
+  return Boolean(piece && piece === piece.toUpperCase());
 }
 
-/**
- * Convert UCI notation (e.g. "e2e4") to from/to squares as [row, col].
- */
+export function squareToCoords(square) {
+  if (!square || square.length < 2) return null;
+  const file = square[0].toLowerCase();
+  const rank = square[1];
+  const col = FILES.indexOf(file);
+  const row = RANKS.indexOf(rank);
+  if (row < 0 || col < 0) return null;
+  return { row, col, square: `${file}${rank}` };
+}
+
+export function coordsToSquare(row, col) {
+  if (row < 0 || row > 7 || col < 0 || col > 7) return null;
+  return `${FILES[col]}${RANKS[row]}`;
+}
+
 export function uciToSquares(uci) {
   if (!uci || uci.length < 4) return { from: null, to: null };
-
-  const fileToCol = (f) => f.charCodeAt(0) - 'a'.charCodeAt(0);
-  const rankToRow = (r) => 8 - parseInt(r);
-
   return {
-    from: { row: rankToRow(uci[1]), col: fileToCol(uci[0]) },
-    to: { row: rankToRow(uci[3]), col: fileToCol(uci[2]) },
+    from: squareToCoords(uci.slice(0, 2)),
+    to: squareToCoords(uci.slice(2, 4)),
   };
 }
 
-/**
- * Get which side is in check from FEN (basic heuristic: 
- * this would need a proper chess engine, so we keep it simple)
- */
 export function getActiveColor(fen) {
-  if (!fen) return 'w';
-  const parts = fen.split(' ');
-  return parts[1] || 'w';
+  return fen?.split(' ')[1] === 'b' ? 'black' : 'white';
 }
 
-/**
- * Calculate captured pieces from move history FENs.
- * Since we only have current FEN, we compare piece counts vs starting position.
- */
 export function getCapturedPieces(fen) {
   if (!fen) return { white: [], black: [] };
 
-  const startingCounts = {
-    P: 8, N: 2, B: 2, R: 2, Q: 1, K: 1,
-    p: 8, n: 2, b: 2, r: 2, q: 1, k: 1,
-  };
-
-  const placement = fen.split(' ')[0];
   const currentCounts = {};
-
-  for (const ch of placement) {
-    if (/[a-zA-Z]/.test(ch) && ch in startingCounts) {
-      currentCounts[ch] = (currentCounts[ch] || 0) + 1;
+  for (const char of fen.split(' ')[0]) {
+    if (char in STARTING_COUNTS) {
+      currentCounts[char] = (currentCounts[char] || 0) + 1;
     }
   }
 
-  const capturedByWhite = []; // Black pieces captured by white
-  const capturedByBlack = []; // White pieces captured by black
+  const capturedByWhite = [];
+  const capturedByBlack = [];
 
-  for (const [piece, startCount] of Object.entries(startingCounts)) {
-    const current = currentCounts[piece] || 0;
-    const diff = startCount - current;
-    for (let i = 0; i < diff; i++) {
-      if (isWhitePiece(piece)) {
-        capturedByBlack.push(piece);
-      } else {
-        capturedByWhite.push(piece);
-      }
+  for (const piece of PIECE_ORDER) {
+    const startCount = STARTING_COUNTS[piece] || 0;
+    const missing = startCount - (currentCounts[piece] || 0);
+    for (let i = 0; i < missing; i += 1) {
+      if (isWhitePiece(piece)) capturedByBlack.push(piece);
+      else capturedByWhite.push(piece);
     }
   }
 
   return { white: capturedByWhite, black: capturedByBlack };
+}
+
+export function getMoveColor(turnCount) {
+  if (!turnCount) return null;
+  return turnCount % 2 === 1 ? 'white' : 'black';
+}
+
+export function getStage(turnCount = 0, gameStatus = 'waiting') {
+  if (gameStatus && !['waiting', 'ongoing'].includes(gameStatus)) return 'Final';
+  const fullMove = Math.max(1, Math.ceil(turnCount / 2));
+  if (fullMove <= 10) return 'Opening';
+  if (fullMove <= 32) return 'Middlegame';
+  return 'Endgame';
+}
+
+export function formatModelName(model) {
+  if (!model) return { provider: 'Model', name: 'Not selected', label: 'Not selected' };
+  const [provider, ...rest] = model.split('/');
+  const name = rest.join('/') || provider;
+  const providerLabel = provider.charAt(0).toUpperCase() + provider.slice(1);
+  return {
+    provider: providerLabel,
+    name,
+    label: rest.length ? `${providerLabel} - ${name}` : name,
+  };
+}
+
+export function describeMove({ san, uci, color }) {
+  if (!san) return 'No move has been played yet.';
+
+  const side = color ? color.charAt(0).toUpperCase() + color.slice(1) : 'Player';
+  const cleanSan = san.replace(/[+#?!]+/g, '');
+  const destination = uci?.slice(2, 4) || cleanSan.match(/[a-h][1-8]/)?.[0] || '';
+
+  if (cleanSan === 'O-O') return `${side} castles kingside.`;
+  if (cleanSan === 'O-O-O') return `${side} castles queenside.`;
+
+  const pieceMap = {
+    K: 'King',
+    Q: 'Queen',
+    R: 'Rook',
+    B: 'Bishop',
+    N: 'Knight',
+  };
+  const first = cleanSan[0];
+  const piece = pieceMap[first] || 'Pawn';
+  const capture = san.includes('x') ? ' captures on' : ' to';
+  const suffix = san.endsWith('#') ? ' checkmate' : san.endsWith('+') ? ' check' : '';
+
+  return `${side} plays ${san} - ${piece}${capture} ${destination}${suffix}.`;
 }

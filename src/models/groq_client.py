@@ -36,13 +36,18 @@ Move history: {', '.join(move_history[-10:]) if move_history else 'None'}"""
             HumanMessage(content="Your Move:")
         ]
 
+        self.last_prompt = system_prompt
         response = await self.llm.ainvoke(messages)
-        move = response.content.strip().split()[0]
+        raw_output = str(response.content)
+        self.last_raw_output = raw_output
+        move = raw_output.strip().split()[0] if raw_output.strip() else "0000"
+        self.last_proposed_move = move
 
         # Validate it's in legal moves
         if move not in legal_moves:
             # Try to find closest match or pick first legal
             move = legal_moves[0] if legal_moves else "0000"
+        self.last_selected_move = move
         
         return move
     

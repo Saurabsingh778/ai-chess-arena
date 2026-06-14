@@ -34,6 +34,7 @@ Move history: {', '.join(move_history[-10:]) if move_history else 'None'}"""
             HumanMessage(content="Your Move: ")
         ]
 
+        self.last_prompt = system_prompt
         response = await self.llm.ainvoke(messages)
 
         # 1. Safely extract text whether the response is a list (thinking models) or a string
@@ -46,15 +47,19 @@ Move history: {', '.join(move_history[-10:]) if move_history else 'None'}"""
         else:
             text_content = response.content
 
+        self.last_raw_output = text_content
+
         # 2. Use .split()[0] to get the full move (e.g., "e2e4")
         if text_content.strip():
             move = text_content.strip().split()[0]
         else:
             move = "0000"
+        self.last_proposed_move = move
 
         # Validate it's in legal moves
         if move not in legal_moves:
             move = legal_moves[0] if legal_moves else "0000"
+        self.last_selected_move = move
         
         return move
     

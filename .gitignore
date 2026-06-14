@@ -11,4 +11,4 @@ wheels/
 .env
 
 
-D:\home\ai-chess-arena\src\ui\web\node_modules
+node_modules/
