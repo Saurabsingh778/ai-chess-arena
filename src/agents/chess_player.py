@@ -13,7 +13,7 @@ async def player_move_node(state: ChessGameState, color: str) -> Dict[str, Any]:
     if not legal_moves:
         return {"game_status" : "stalemate"}
     
-    model_string = state["white_model"] if color == "white" else state["balck_model"]
+    model_string = state["white_model"] if color == "white" else state["black_model"]
 
     model = create_model(model_string, Settings.temperature)
 
@@ -60,11 +60,9 @@ async def player_move_node(state: ChessGameState, color: str) -> Dict[str, Any]:
 
     }
 
-# Wrapper functions for graph nodes
-def white_player_node(state: ChessGameState) -> Dict[str, Any]:
-    import asyncio
-    return asyncio.run(player_move_node(state, "white"))
+# Wrapper functions for graph nodes (async — no nested asyncio.run)
+async def white_player_node(state: ChessGameState) -> Dict[str, Any]:
+    return await player_move_node(state, "white")
 
-def black_player_node(state: ChessGameState) -> Dict[str, Any]:
-    import asyncio
-    return asyncio.run(player_move_node(state, "black"))
+async def black_player_node(state: ChessGameState) -> Dict[str, Any]:
+    return await player_move_node(state, "black")

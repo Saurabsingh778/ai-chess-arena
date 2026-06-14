@@ -7,23 +7,23 @@ class ChessGameState(TypedDict):
 
     fen: str
     move_history: Annotated[list[str], add]
-    full_move_number: int
+    fullmove_number: int
 
     white_model:str
-    balck_model:str
+    black_model:str
 
     current_turn:Literal["white", "black"]
     turn_count: int
 
-    game_status: Literal["ongoing", "checkmate", "stalemate", "drow", "resignation", "max_moves", "error"]
+    game_status: Literal["ongoing", "checkmate", "stalemate", "draw", "resignation", "max_moves", "error"]
 
-    winner: Literal["white", "black", "drow", None]
+    winner: Literal["white", "black", "draw", None]
 
     last_move: str | None
     last_move_san: str | None
     move_errors: Annotated[list[str], add]
 
-    message: Annotated[list[BaseMessage], add]
+    messages: Annotated[list[BaseMessage], add]
     commentary: Annotated[list[dict], add]
 
     game_id: str

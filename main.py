@@ -7,6 +7,9 @@ from src.graphs.chess_match_graph import build_graph
 from src.state.game_state import ChessGameState
 from src.ui.cli_display import display_board, display_game_result
 from src.config.settings import Settings
+import sys
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 console = Console()
 
@@ -55,7 +58,7 @@ async def run_match(white_model: str, black_model: str):
                         node_state.get("last_move_san"),
                         node_state.get("current_turn")
                     )
-                if node_state.get("game_status") != "ongoing":
+                if node_state.get("game_status") and node_state["game_status"] != "ongoing":
                     display_game_result(node_state)
 
     final_state = graph.get_state(config)

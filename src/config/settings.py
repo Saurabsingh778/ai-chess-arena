@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     groq_api_key: str = GROQ_API_KEY
     groq_api_key_II: str = GROQ_API_KEY_II
     cerebrase_api_key: str | None = None
-    gemini_api_key:str | None = None
+    gemini_api_key:str  = GEMINI_API_KEY
 
     white_model: str = "groq/llama-3.3-70b-versatile"
     black_model: str = "groq/openai/gpt-oss-120b"

@@ -8,12 +8,10 @@ def validate_move(state: ChessGameState) -> Dict[str, Any]:
     
     # Check for check, checkmate, draws
     status = "ongoing"
-    if board.is_checkmate():
-        status = "checkmate"
-    elif board.is_stalemate():
-        status = "stalemate"
-    elif board.is_insufficient_material():
-        status = "draw"
+    new = board.get_game_results()
+
+    if new:
+        status = new
     
     return {"game_status": status}
     

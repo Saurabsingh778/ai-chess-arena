@@ -8,11 +8,11 @@ class ChessBoard:
     
     def get_legal_moves(self) -> List[str]:
         """Return list of legal moves in UCI notation."""
-        return [move.uci() for move in self.board.legal_moves()]
+        return [move.uci() for move in self.board.legal_moves]
     
     def get_legal_moves_san(self) -> List[str]:
         """Return list of legal moves in SAN notation."""
-        return [self.board.san(move) for move in self.board.legal_moves()]
+        return [self.board.san(move) for move in self.board.legal_moves]
     
     def make_move(self, move_uci: str) -> Tuple[bool, str]:
         """Apply a move. Returns (success, message)."""
@@ -39,7 +39,7 @@ class ChessBoard:
         elif self.board.is_stalemate():
             return "stalemate"
         elif self.board.is_insufficient_material():
-            return "insufficient_material"
+            return "draw"
         elif self.board.is_fivefold_repetition():
             return "repetition"
         elif self.board.is_seventyfive_moves():
