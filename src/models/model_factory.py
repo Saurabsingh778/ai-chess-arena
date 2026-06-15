@@ -8,6 +8,7 @@ from .groq_client_II import GroqChessModelII
 # Registry of available models
 MODEL_REGISTRY: Dict[str, type[BaseChessModel]] = {
     "groq" : GroqChessModel,
+    "groq_II" : GroqChessModelII,
     "gemini" : GeminiChessModel,
     "cerebrase" : CerebraseChessModel,
 }

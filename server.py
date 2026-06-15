@@ -28,7 +28,7 @@ matches: Dict[str, Dict[str, Any]] = {}
 # ── Pydantic request/response models ────────────────────────────────
 class MatchRequest(BaseModel):
     white_model: str = "groq/openai/gpt-oss-120b"
-    black_model: str = "gemini/gemma-4-31b-it"
+    black_model: str = "groq_II/llama-3.3-70b-versatile"
     max_moves: int = 200
     temperature: float = 0.7
 

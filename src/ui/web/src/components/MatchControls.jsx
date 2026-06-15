@@ -3,7 +3,7 @@ import { fetchAvailableModels } from '../hooks/useMatchWebSocket';
 
 const DEFAULT_MODELS = {
   suggested_models: {
-    groq: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'],
+    groq: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'openai/gpt-oss-120b'],
     gemini: ['gemma-4-31b-it', 'gemini-2.5-flash'],
   },
 };
@@ -23,8 +23,8 @@ function buildOptions(models) {
 }
 
 export default function MatchControls({ onStart, onStop, isRunning }) {
-  const [whiteModel, setWhiteModel] = useState('groq/llama-3.3-70b-versatile');
-  const [blackModel, setBlackModel] = useState('gemini/gemma-4-31b-it');
+  const [whiteModel, setWhiteModel] = useState('groq/openai/gpt-oss-120b');
+  const [blackModel, setBlackModel] = useState('groq/llama-3.3-70b-versatile');
   const [temperature, setTemperature] = useState(0.7);
   const [models, setModels] = useState(DEFAULT_MODELS);
 

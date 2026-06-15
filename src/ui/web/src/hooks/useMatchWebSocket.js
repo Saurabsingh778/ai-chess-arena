@@ -11,7 +11,7 @@ const WS_BASE = import.meta.env.VITE_WS_BASE || API_BASE.replace(/^http/, 'ws');
 const FALLBACK_MODELS = {
   providers: ['groq', 'gemini', 'cerebrase'],
   suggested_models: {
-    groq: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'gemma2-9b-it'],
+    groq: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'gemma2-9b-it', 'openai/gpt-oss-120b'],
     gemini: ['gemma-4-31b-it', 'gemini-2.5-flash', 'gemini-2.5-pro'],
     cerebrase: ['llama-3.3-70b', 'llama-3.1-8b'],
   },

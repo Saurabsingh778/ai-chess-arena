@@ -5,8 +5,10 @@ from ..chess_engine.board import ChessBoard
 def validate_move(state: ChessGameState) -> Dict[str, Any]:
     """Post-move validation and state update."""
 
-    if state.get("game_status") not in (None, "ongoing"):
-        return {}
+    current_status = state.get("game_status")
+
+    if current_status not in (None, "ongoing"):
+        return {"game_status": current_status}
 
     board = ChessBoard(state["fen"])
     status = "ongoing"
